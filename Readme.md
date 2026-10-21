@@ -17,11 +17,11 @@
 
 | Conditions and Actions         | Rule 1 | Rule 2 | Rule 3 | Rule 4 | Rule 5 | Rule 6 |
 | ------------------------------ | :----: | :----: | :----: | :----: | :----: | :----: |
-| Dates are valid                |    T    |    T    |    -    |    T    |    F    |    -    |
-| Number of nights is valid      |    T    |    T    |    -    |    T    |    -    |    F    |
-| Number of guests is valid      |    T    |    T    |    -    |    F    |    -    |    -    |
-| Requested nights are available |    T    |    T    |    F    |    T    |    -    |    -    |
-| More than five guests          |    T    |    F    |    -    |    T    |    -    |    -    |
+| Dates are valid                |    T    |    T    |    T    |    -    |    F    |    -    |
+| Number of nights is valid      |    T    |    T    |    T    |    -    |    -    |    F    |
+| Number of guests is valid      |    T    |    T    |    T    |    F    |    -    |    -    |
+| Requested nights are available |    T    |    T    |    F    |    -    |    -    |    -    |
+| More than five guests          |    T    |    F    |    F    |    -    |    -    |    -    |
 | **Create reservation**         |    X    |    X    |        |        |        |        |
 | **Calculate standard price**   |    X    |    X    |        |        |        |        |
 | **Add extra guest fee**        |    X    |        |        |        |        |        |
@@ -85,3 +85,50 @@
 - **Availability:** Every requested night is available.
 - **Expected Result:** Throw `ValueError`
 
+# Step 4
+
+### States
+1. `Pending`
+2. `Confirmed`
+3. `Checked In`
+4. `Completed`
+5. `Cancelled`
+
+### Events
+1. Payment goes through
+2. Payment fails
+3. Guest checks in
+4. Guest checks out
+5. Guest cancels
+
+# Step 5
+
+| Current State | Event            | Expected State | Expected Result          |
+| ------------- | ---------------- | -------------- | ------------------------ |
+| Pending       | Payment succeeds | Confirmed      | Reservation is confirmed |
+| Confirmed     | Guest checks in  | Checked in     | Guest has arrived        |
+| Checked In    | Guest checks out | Completed      | Guest leaves             |
+| Pending       | Guest cancels    | Cancelled      | Guest cancels reservation|
+| Confirmed     | Guest cancels    | Cancelled      | Guest cancels reservation|
+| Pending       | Payment fails    | Cancelled      | System cancels reservation|
+| Pending       | Guest checks in  | Pending        | Raise `InvalidStateError`|
+| Checked In    | Guest cancels    | Checked In     | Raise `InvalidStateError`|
+| Completed     | Guest cancels    | Completed      | Raise `InvalidStateError`|
+
+# Step 6
+
+| Test ID |Step | Current State | Event   | Expected State | Expected Result          | Transition Type |
+| ---- | - | ------------- | ---------------- | -------------- | ------------------------ |-----------|
+| ST02 | - | Confirmed     | Guest checks in  | Checked in     | Guest has arrived        | Valid |
+| ST03 | - | Checked In    | Guest checks out | Completed      | Guest leaves             | Valid |
+| ST04 | - | Pending       | Guest cancels    | Cancelled      | Guest cancels reservation| Valid |
+| ST05 | - | Confirmed     | Guest cancels    | Cancelled      | Guest cancels reservation| Valid |
+| ST06 | - | Pending       | Payment fails    | Cancelled      | System cancels reservation| Valid |
+| ST07 | - | Pending       | Guest checks in  | Pending        | Raise `InvalidStateError`| Invalid |
+| ST08 | - | Checked In    | Guest cancels    | Checked In     | Raise `InvalidStateError`| Invalid |
+| ST09 | - | Completed     | Guest cancels    | Completed      | Raise `InvalidStateError`| Invalid |
+| ST10 | 1 | Pending       | Payment succeeds | Confirmed      | Reservation is confirmed | Valid |
+|  -   | 2 | Confirmed     | Guest checks in  | Checked in     | Guest has arrived        | Valid |
+|  -   | 3 | Checked In    | Guest checks out | Completed      | Guest leaves             | Valid |
+| ST11 | 1 | Pending       | Payment succeeds | Confirmed      | Reservation is confirmed | Valid |
+|  -   | 2 | Confirmed     | Guest cancels    | Cancelled      | Guest cancels reservation| Valid |
